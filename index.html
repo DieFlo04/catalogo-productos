@@ -1,57 +1,57 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Catálogo</title>
-  <link rel="stylesheet" href="css/styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo | Carolina Flores Porras</title>
+<link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-
-<header class="top-bar">
-  <h1>Nuestros Productos</h1>
-  <span class="distribuidor">Distribuidora: Carolina Flores Porras</span>
+<header>
+  <div class="titulo">
+    <h1>Entrega Inmediata</h1>
+    <div class="der"><span>Distribuidora: Carolina Flores Porras</span><button id="btn-carrito" aria-label="Ver mi pedido">🛒<b id="cuenta" class="hidden">0</b></button></div>
+  </div>
+  <input id="buscar" type="search" placeholder="Buscar producto o ID…">
+  <nav id="marcas"></nav>
+  <div id="filtros" class="filtros hidden">
+    <select id="talla"><option value="">Todas las tallas</option></select>
+    <select id="orden">
+      <option value="">Ordenar</option>
+      <option value="asc">Precio: menor a mayor</option>
+      <option value="desc">Precio: mayor a menor</option>
+    </select>
+  </div>
 </header>
 
+<main>
+  <p id="estado" class="aviso">Cargando productos…</p>
+  <div id="grid" class="grid"></div>
+</main>
 
-<section>
-  <h2>HOME INTERIORS</h2>
-  <div id="home-interiors" class="grid"></div>
-</section>
-
-<section>
-  <h2>ZAPATOS</h2>
-  <div id="zapatos" class="grid"></div>
-</section>
-
-<section>
-  <h2>PANTALONES HOMBRE</h2>
-  <div id="pantalones" class="grid"></div>
-</section>
-
-<section>
-  <h2>PANTALONES MUJER</h2>
-  <div id="pantalones" class="grid"></div>
-</section>
-
-<!-- WhatsApp Floating Button -->
-<a
-  href="https://wa.me/5213921589515"
-  class="whatsapp-float"
-  target="_blank"
-  aria-label="WhatsApp"
->
+<a href="#" id="wa-float" class="whatsapp-float" target="_blank" aria-label="WhatsApp">
   <img src="images/whatsapp.webp" alt="WhatsApp">
 </a>
 
-
-<!-- MODAL -->
-<div id="modal" class="modal hidden">
-  <span class="close">&times;</span>
-  <img id="modal-img">
+<div id="carrito" class="carrito hidden">
+  <div class="panel">
+    <div class="cab"><h2>Tu pedido</h2><button id="cerrar-carrito" aria-label="Cerrar">&times;</button></div>
+    <div id="items"></div>
+    <div class="pie">
+      <p class="total">Total: <b id="total">$0</b></p>
+      <p id="nota" class="nota"></p>
+      <a id="enviar" class="btn-whatsapp grande" target="_blank" rel="noopener">Enviar pedido por WhatsApp</a>
+      <button id="vaciar" class="link">Vaciar pedido</button>
+    </div>
+  </div>
 </div>
 
-<script src="js/data.js"></script>
-<script src="js/app.js"></script>
+<div id="modal" class="modal hidden">
+  <span class="close">&times;</span>
+  <img id="modal-img" alt="">
+</div>
 
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

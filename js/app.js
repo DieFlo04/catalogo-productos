@@ -1,140 +1,199 @@
-const WHATSAPP_NUMBER = "5213921589515"; // TU NÚMERO
+const $ = id => document.getElementById(id);
+let productos = [];
+let marcaActiva = "Todos";
 
-const modal = document.getElementById("modal");
-const modalImg = document.getElementById("modal-img");
-const closeBtn = document.querySelector(".close");
-
-/* ===== MODAL ===== */
-function abrirModal(src) {
-  modalImg.src = src;
-  modal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
+/* ===== CSV (soporta comillas y comas dentro de texto) ===== */
+function parseCSV(texto) {
+  const filas = []; let fila = [], campo = "", comillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (comillas) {
+      if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
+      else if (c === '"') comillas = false;
+      else campo += c;
+    } else if (c === '"') comillas = true;
+    else if (c === ",") { fila.push(campo); campo = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && texto[i + 1] === "\n") i++;
+      fila.push(campo); filas.push(fila); fila = []; campo = "";
+    } else campo += c;
+  }
+  if (campo || fila.length) { fila.push(campo); filas.push(fila); }
+  const [enc, ...datos] = filas;
+  const cols = enc.map(h => h.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  return datos.filter(f => f.some(x => x.trim())).map(f =>
+    Object.fromEntries(cols.map((c, i) => [c, (f[i] || "").trim()])));
 }
 
-function cerrarModal() {
-  modal.classList.add("hidden");
-  document.body.style.overflow = "auto";
+/* ===== Datos ===== */
+async function cargar() {
+  try {
+    const r = await fetch(SHEET_CSV_URL + (SHEET_CSV_URL.includes("?") ? "&" : "?") + "t=" + Date.now());
+    if (!r.ok) throw new Error();
+    productos = parseCSV(await r.text()).filter(p => p.id && p.nombre).map(p => {
+      const cant = p.cantidad === "" ? 1 : parseInt(p.cantidad, 10) || 0;
+      return { ...p, cantidad: cant, precioNum: parseFloat(p.precio) || null,
+               vendido: p.estado.toLowerCase() === "vendido" || cant <= 0 };
+    });
+    $("estado").classList.add("hidden");
+    crearBotones(); render(); pintarCarrito();
+  } catch {
+    $("estado").textContent = "No se pudo cargar el catálogo. Intenta de nuevo en un momento.";
+  }
 }
 
-closeBtn.addEventListener("click", cerrarModal);
+/* ===== Botones de marca ===== */
+function crearBotones() {
+  const marcas = ["Todos", ...MARCAS.filter(m => productos.some(p => p.marca === m))];
+  $("marcas").innerHTML = marcas.map(m =>
+    `<button data-m="${m}" class="${m === marcaActiva ? "activo" : ""}">${m}</button>`).join("");
+  $("marcas").onclick = e => {
+    if (!e.target.dataset.m) return;
+    marcaActiva = e.target.dataset.m;
+    document.querySelectorAll("#marcas button").forEach(b => b.classList.toggle("activo", b === e.target));
+    actualizarTallas(); render();
+  };
+}
 
-modal.addEventListener("click", (e) => {
-  if (e.target === modal) cerrarModal();
+function actualizarTallas() {
+  const conTalla = productos.filter(p => p.talla && (marcaActiva === "Todos" || p.marca === marcaActiva));
+  const esRopa = ["Ropa", "Calzado"].includes(marcaActiva);
+  $("filtros").classList.toggle("hidden", !esRopa);
+  const tallas = [...new Set(conTalla.map(p => p.talla))].sort((a, b) => parseFloat(a) - parseFloat(b));
+  $("talla").innerHTML = `<option value="">Todas las tallas</option>` +
+    tallas.map(t => `<option>${t}</option>`).join("");
+}
+
+/* ===== Render ===== */
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function linkWA(p) {
+  const msg = `Hola, me interesa este producto:\n\n${p.nombre}\nID: ${p.id}` +
+    (p.talla ? `\nTalla: ${p.talla}` : "") + (p.color ? `\nColor: ${p.color}` : "") +
+    (p.precioNum ? `\nPrecio: $${p.precioNum}` : "");
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+}
+
+function render() {
+  const q = $("buscar").value.trim().toLowerCase();
+  const talla = $("talla").value, orden = $("orden").value;
+  let lista = productos.filter(p =>
+    (marcaActiva === "Todos" || p.marca === marcaActiva) &&
+    (!talla || p.talla === talla) &&
+    (!q || `${p.nombre} ${p.id} ${p.descripcion} ${p.categoria} ${p.color}`.toLowerCase().includes(q)));
+  lista.sort((a, b) => a.vendido - b.vendido ||
+    (orden === "asc" ? (a.precioNum || 0) - (b.precioNum || 0) :
+     orden === "desc" ? (b.precioNum || 0) - (a.precioNum || 0) : 0));
+
+  $("grid").innerHTML = lista.map(p => `
+    <article class="card ${p.vendido ? "vendido" : ""}" data-foto="images/${esc(p.foto)}">
+      <div class="foto">
+        <img loading="lazy" src="images/${esc(p.foto)}" alt="${esc(p.nombre)}">
+        ${p.vendido ? '<span class="sello">VENDIDO</span>' : ""}
+      </div>
+      <h3>${esc(p.nombre)}</h3>
+      ${p.descripcion ? `<p class="desc">${esc(p.descripcion)}</p>` : ""}
+      ${p.talla ? `<p>Talla: ${esc(p.talla)}${p.color ? " · " + esc(p.color) : ""}</p>` : ""}
+      <p class="precio">${p.precioNum ? "$" + p.precioNum : "Consultar precio"}</p>
+      ${!p.vendido && p.cantidad > 1 ? `<p class="quedan">Quedan ${p.cantidad}</p>` : ""}
+      ${p.vendido ? "" : `<button class="btn-agregar" data-id="${esc(p.id)}">Agregar al pedido</button><br><a class="btn-whatsapp" target="_blank" rel="noopener" href="${linkWA(p)}">Preguntar</a>`}
+    </article>`).join("") || '<p class="aviso">No hay productos con esos filtros.</p>';
+}
+
+/* ===== Eventos ===== */
+$("buscar").addEventListener("input", render);
+$("talla").addEventListener("change", render);
+$("orden").addEventListener("change", render);
+$("wa-float").href = `https://wa.me/${WHATSAPP_NUMBER}`;
+
+$("grid").addEventListener("click", e => {
+  const add = e.target.closest(".btn-agregar");
+  if (add) { if (agregar(add.dataset.id)) { add.textContent = "✓ Agregado"; setTimeout(() => add.textContent = "Agregar al pedido", 1200); } return; }
+  if (e.target.closest(".btn-whatsapp")) return;
+  const card = e.target.closest(".card");
+  if (card) { $("modal-img").src = card.dataset.foto; $("modal").classList.remove("hidden"); document.body.style.overflow = "hidden"; }
+});
+const cerrar = () => { $("modal").classList.add("hidden"); document.body.style.overflow = ""; };
+$("modal").addEventListener("click", cerrar);
+document.addEventListener("keydown", e => e.key === "Escape" && cerrar());
+
+/* ===== CARRITO ===== */
+const MIN_CARRITO = 30; // minutos que se conserva el pedido sin cambios
+let carrito = {};
+let ts = 0;
+try { ts = +localStorage.getItem("carritoTs") || 0; } catch {}
+const tocar = () => { ts = Date.now(); try { localStorage.setItem("carritoTs", ts); } catch {} };
+try { carrito = JSON.parse(localStorage.getItem("carrito") || "{}"); } catch {}
+const guardar = () => { try { localStorage.setItem("carrito", JSON.stringify(carrito)); } catch {} };
+const dinero = n => "$" + n.toLocaleString("es-MX");
+
+function agregar(id) {
+  const p = productos.find(x => x.id === id);
+  if (!p || p.vendido) return false;
+  const n = (carrito[id] || 0) + 1;
+  if (n > p.cantidad) { alert(`Solo hay ${p.cantidad} pieza(s) disponible(s) de este producto.`); return false; }
+  carrito[id] = n; tocar(); guardar(); pintarCarrito(); return true;
+}
+
+function pintarCarrito() {
+  if (Object.keys(carrito).length && Date.now() - ts > MIN_CARRITO * 60000) carrito = {};
+  // Quita productos vendidos o que ya no existen y ajusta cantidades
+  Object.keys(carrito).forEach(id => {
+    const p = productos.find(x => x.id === id);
+    if (!p || p.vendido) delete carrito[id];
+    else carrito[id] = Math.min(carrito[id], p.cantidad);
+  });
+  guardar();
+  const items = Object.entries(carrito).map(([id, q]) => ({ p: productos.find(x => x.id === id), q }));
+  const piezas = items.reduce((s, i) => s + i.q, 0);
+  const total = items.reduce((s, i) => s + (i.p.precioNum || 0) * i.q, 0);
+  const sinPrecio = items.filter(i => !i.p.precioNum).length;
+
+  $("cuenta").textContent = piezas;
+  $("cuenta").classList.toggle("hidden", !piezas);
+  $("items").innerHTML = items.map(({ p, q }) => `
+    <div class="item">
+      <img src="images/${esc(p.foto)}" alt="">
+      <div class="info">
+        <strong>${esc(p.nombre)}</strong>
+        <small>${p.talla ? "Talla " + esc(p.talla) + " · " : ""}${p.precioNum ? dinero(p.precioNum) + " c/u" : "Precio por confirmar"}</small>
+        <div class="cant">
+          <button data-acc="menos" data-id="${esc(p.id)}">−</button><span>${q}</span><button data-acc="mas" data-id="${esc(p.id)}">+</button>
+          <button class="quitar" data-acc="quitar" data-id="${esc(p.id)}">Quitar</button>
+        </div>
+      </div>
+      <b>${p.precioNum ? dinero(p.precioNum * q) : ""}</b>
+    </div>`).join("") || '<p class="aviso">Aún no has agregado productos.</p>';
+
+  $("total").textContent = dinero(total);
+  $("nota").textContent = (sinPrecio ? `${sinPrecio} producto(s) sin precio: se confirmará por WhatsApp. ` : "") +
+    (piezas ? `Tu pedido se conserva ${MIN_CARRITO} min sin cambios.` : "");
+  $("enviar").classList.toggle("deshabilitado", !piezas);
+  $("vaciar").classList.toggle("hidden", !piezas);
+
+  const lineas = items.map(({ p, q }) =>
+    `• ${q} x ${p.nombre} (ID: ${p.id}${p.talla ? ", talla " + p.talla : ""})` +
+    (p.precioNum ? ` - ${dinero(p.precioNum * q)}` : " - precio por confirmar")).join("\n");
+  const msg = `Hola, quiero hacer este pedido:\n\n${lineas}\n\nTotal: ${dinero(total)}` +
+    (sinPrecio ? " (más productos por confirmar precio)" : "");
+  $("enviar").href = piezas ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}` : "#";
+}
+
+const abrirCarrito = v => { $("carrito").classList.toggle("hidden", !v); document.body.style.overflow = v ? "hidden" : ""; };
+$("btn-carrito").addEventListener("click", () => abrirCarrito(true));
+$("cerrar-carrito").addEventListener("click", () => abrirCarrito(false));
+$("carrito").addEventListener("click", e => { if (e.target === $("carrito")) abrirCarrito(false); });
+$("vaciar").addEventListener("click", () => { carrito = {}; pintarCarrito(); });
+$("enviar").addEventListener("click", e => { if (e.target.classList.contains("deshabilitado")) e.preventDefault(); });
+$("items").addEventListener("click", e => {
+  const { acc, id } = e.target.dataset;
+  if (!acc) return;
+  tocar();
+  if (acc === "mas") agregar(id);
+  else if (acc === "menos") { carrito[id] = (carrito[id] || 1) - 1; if (carrito[id] <= 0) delete carrito[id]; }
+  else delete carrito[id];
+  pintarCarrito();
 });
 
-/* ===== WHATSAPP ===== */
-function crearLinkWhatsApp(mensaje) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`;
-}
-
-/* ===== HOME INTERIORS ===== */
-function renderProductos(lista, contenedorId) {
-  const contenedor = document.getElementById(contenedorId);
-
-  lista.forEach(p => {
-    const mensaje = `Hola, me interesa este producto:\n\n${p.nombre}`;
-
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <img src="${p.imagen}" alt="${p.nombre}">
-      <h3>${p.nombre}</h3>
-      <a 
-        href="${crearLinkWhatsApp(mensaje)}"
-        target="_blank"
-        class="btn-whatsapp"
-      >
-        📞 WhatsApp
-      </a>
-    `;
-
-    card.addEventListener("click", () => abrirModal(p.imagen));
-
-    // Evitar que el click del botón abra el modal
-    card.querySelector(".btn-whatsapp")
-      .addEventListener("click", e => e.stopPropagation());
-
-    contenedor.appendChild(card);
-  });
-}
-
-/* ===== ZAPATOS ===== */
-function renderZapatos(lista, contenedorId) {
-  const contenedor = document.getElementById(contenedorId);
-
-  lista.forEach(p => {
-    const mensaje = `Hola, me interesa este zapato:\n
-Modelo: ${p.nombre}
-Talla: ${p.talla}
-Color: ${p.color}
-Precio: ${p.precio}`;
-
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <img src="${p.imagen}" alt="${p.nombre}">
-      <h3>${p.nombre}</h3>
-      <p>Talla: ${p.talla}</p>
-      <p class="color">${p.color}</p>
-      <p class="precio">${p.precio}</p>
-      <a 
-        href="${crearLinkWhatsApp(mensaje)}"
-        target="_blank"
-        class="btn-whatsapp"
-      >
-        📞 WhatsApp
-      </a>
-    `;
-
-    card.addEventListener("click", () => abrirModal(p.imagen));
-
-    card.querySelector(".btn-whatsapp")
-      .addEventListener("click", e => e.stopPropagation());
-
-    contenedor.appendChild(card);
-  });
-}
-
-/* ===== PANTALONES ===== */
-function renderPantalones(lista, contenedorId) {
-  const contenedor = document.getElementById(contenedorId);
-
-  lista.forEach(p => {
-    const mensaje = `Hola, me interesa este pantalón:\n
-Modelo: ${p.nombre}
-Talla: ${p.talla}
-Color: ${p.color}
-Precio: ${p.precio}`;
-
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <img src="${p.imagen}" alt="${p.nombre}">
-      <h3>${p.nombre}</h3>
-      <p>Talla: ${p.talla}</p>
-      <p class="color">${p.color}</p>
-      <p class="precio">${p.precio}</p>
-      <a 
-        href="${crearLinkWhatsApp(mensaje)}"
-        target="_blank"
-        class="btn-whatsapp"
-      >
-        📞 WhatsApp
-      </a>
-    `;
-
-    card.addEventListener("click", () => abrirModal(p.imagen));
-
-    card.querySelector(".btn-whatsapp")
-      .addEventListener("click", e => e.stopPropagation());
-
-    contenedor.appendChild(card);
-  });
-}
-
-renderProductos(catalogo.homeInteriors, "home-interiors");
-renderZapatos(catalogo.zapatos, "zapatos");
-renderPantalones(catalogo.pantalones, "pantalones");
+setInterval(() => productos.length && pintarCarrito(), 30000);
+cargar();
