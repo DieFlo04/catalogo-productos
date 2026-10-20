@@ -2,6 +2,8 @@ const $ = id => document.getElementById(id);
 let productos = [];
 let marcaActiva = "Todos";
 let categoriaActiva = "";
+const PASO = 40; // productos que se muestran por tanda
+let visibles = PASO;
 let soloFavs = false;
 let favs = [];
 try { favs = JSON.parse(localStorage.getItem("favs") || "[]"); } catch {}
@@ -78,7 +80,8 @@ function linkWA(p) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
 }
 
-function render() {
+function render(mantener) {
+  if (mantener !== true) visibles = PASO; // al cambiar un filtro se vuelve a la primera tanda
   const q = $("buscar").value.trim().toLowerCase();
   const talla = $("talla").value, orden = $("orden").value;
   const pmin = parseFloat($("pmin").value) || 0, pmax = parseFloat($("pmax").value) || 0;
@@ -94,10 +97,11 @@ function render() {
     (orden === "asc" ? (a.precioNum || 0) - (b.precioNum || 0) :
      orden === "desc" ? (b.precioNum || 0) - (a.precioNum || 0) : 0));
 
-  $("grid").innerHTML = lista.map(p => `
+  const total = lista.length;
+  $("grid").innerHTML = lista.slice(0, visibles).map(p => `
     <article class="card ${p.vendido ? "vendido" : ""}" data-foto="images/${esc(p.foto)}">
       <div class="foto">
-        <img loading="lazy" src="images/${esc(p.foto)}" alt="${esc(p.nombre)}">
+        <img loading="lazy" decoding="async" src="images/${esc(p.foto)}" alt="${esc(p.nombre)}">
         ${p.vendido ? '<span class="sello">VENDIDO</span>' : ""}
         <button class="fav ${favs.includes(p.id) ? "on" : ""}" data-fav="${esc(p.id)}" aria-label="Favorito">${favs.includes(p.id) ? "♥" : "♡"}</button>
       </div>
@@ -108,12 +112,15 @@ function render() {
       ${!p.vendido && p.cantidad > 1 ? `<p class="quedan">Quedan ${p.cantidad}</p>` : ""}
       ${p.vendido ? "" : `<button class="btn-agregar" data-id="${esc(p.id)}">Agregar al pedido</button><br><a class="btn-whatsapp" target="_blank" rel="noopener" href="${linkWA(p)}">Preguntar</a>`}
     </article>`).join("") || '<p class="aviso">No hay productos con esos filtros.</p>';
+  $("mas").classList.toggle("hidden", total <= visibles);
+  $("btn-mas").textContent = `Ver más productos (${total - visibles} restantes)`;
 }
 
 /* ===== Eventos ===== */
 $("buscar").addEventListener("input", render);
 $("talla").addEventListener("change", render);
 $("orden").addEventListener("change", render);
+$("btn-mas").addEventListener("click", () => { visibles += PASO; render(true); });
 $("pmin").addEventListener("input", render);
 $("pmax").addEventListener("input", render);
 $("wa-float").href = `https://wa.me/${WHATSAPP_NUMBER}`;
@@ -157,7 +164,7 @@ function toggleFav(id) {
   favs = favs.includes(id) ? favs.filter(x => x !== id) : [...favs, id];
   try { localStorage.setItem("favs", JSON.stringify(favs)); } catch {}
   contarFavs();
-  if (soloFavs) return render();
+  if (soloFavs) return render(true);
   const b = document.querySelector(`.fav[data-fav="${CSS.escape(id)}"]`);
   if (b) { b.classList.toggle("on", favs.includes(id)); b.textContent = favs.includes(id) ? "♥" : "♡"; }
 }
