@@ -1,6 +1,10 @@
 const $ = id => document.getElementById(id);
 let productos = [];
 let marcaActiva = "Todos";
+let categoriaActiva = "";
+let soloFavs = false;
+let favs = [];
+try { favs = JSON.parse(localStorage.getItem("favs") || "[]"); } catch {}
 
 /* ===== CSV (soporta comillas y comas dentro de texto) ===== */
 function parseCSV(texto) {
@@ -51,14 +55,14 @@ function crearBotones() {
     if (!e.target.dataset.m) return;
     marcaActiva = e.target.dataset.m;
     document.querySelectorAll("#marcas button").forEach(b => b.classList.toggle("activo", b === e.target));
-    actualizarTallas(); render();
+    actualizarTallas(); crearCategorias(); render();
   };
 }
 
 function actualizarTallas() {
   const conTalla = productos.filter(p => p.talla && (marcaActiva === "Todos" || p.marca === marcaActiva));
   const esRopa = ["Ropa", "Calzado"].includes(marcaActiva);
-  $("filtros").classList.toggle("hidden", !esRopa);
+  $("talla").classList.toggle("hidden", !esRopa);
   const tallas = [...new Set(conTalla.map(p => p.talla))].sort((a, b) => parseFloat(a) - parseFloat(b));
   $("talla").innerHTML = `<option value="">Todas las tallas</option>` +
     tallas.map(t => `<option>${t}</option>`).join("");
@@ -77,9 +81,14 @@ function linkWA(p) {
 function render() {
   const q = $("buscar").value.trim().toLowerCase();
   const talla = $("talla").value, orden = $("orden").value;
+  const pmin = parseFloat($("pmin").value) || 0, pmax = parseFloat($("pmax").value) || 0;
   let lista = productos.filter(p =>
     (marcaActiva === "Todos" || p.marca === marcaActiva) &&
     (!talla || p.talla === talla) &&
+    (!categoriaActiva || p.categoria === categoriaActiva) &&
+    (!soloFavs || favs.includes(p.id)) &&
+    (!pmin || (p.precioNum && p.precioNum >= pmin)) &&
+    (!pmax || (p.precioNum && p.precioNum <= pmax)) &&
     (!q || `${p.nombre} ${p.id} ${p.descripcion} ${p.categoria} ${p.color}`.toLowerCase().includes(q)));
   lista.sort((a, b) => a.vendido - b.vendido ||
     (orden === "asc" ? (a.precioNum || 0) - (b.precioNum || 0) :
@@ -90,6 +99,7 @@ function render() {
       <div class="foto">
         <img loading="lazy" src="images/${esc(p.foto)}" alt="${esc(p.nombre)}">
         ${p.vendido ? '<span class="sello">VENDIDO</span>' : ""}
+        <button class="fav ${favs.includes(p.id) ? "on" : ""}" data-fav="${esc(p.id)}" aria-label="Favorito">${favs.includes(p.id) ? "♥" : "♡"}</button>
       </div>
       <h3>${esc(p.nombre)}</h3>
       ${p.descripcion ? `<p class="desc">${esc(p.descripcion)}</p>` : ""}
@@ -104,9 +114,13 @@ function render() {
 $("buscar").addEventListener("input", render);
 $("talla").addEventListener("change", render);
 $("orden").addEventListener("change", render);
+$("pmin").addEventListener("input", render);
+$("pmax").addEventListener("input", render);
 $("wa-float").href = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 $("grid").addEventListener("click", e => {
+  const fav = e.target.closest(".fav");
+  if (fav) { toggleFav(fav.dataset.fav); return; }
   const add = e.target.closest(".btn-agregar");
   if (add) { if (agregar(add.dataset.id)) { add.textContent = "✓ Agregado"; setTimeout(() => add.textContent = "Agregar al pedido", 1200); } return; }
   if (e.target.closest(".btn-whatsapp")) return;
@@ -116,6 +130,52 @@ $("grid").addEventListener("click", e => {
 const cerrar = () => { $("modal").classList.add("hidden"); document.body.style.overflow = ""; };
 $("modal").addEventListener("click", cerrar);
 document.addEventListener("keydown", e => e.key === "Escape" && cerrar());
+
+/* ===== CATEGORÍAS ===== */
+function crearCategorias() {
+  const cats = [...new Set(productos.filter(p => marcaActiva !== "Todos" && p.marca === marcaActiva && p.categoria)
+    .map(p => p.categoria))].sort();
+  categoriaActiva = "";
+  $("cats").classList.toggle("hidden", cats.length < 2);
+  $("cats").innerHTML = ["Todas", ...cats].map(c =>
+    `<button data-c="${esc(c)}" class="${c === "Todas" ? "activo" : ""}">${esc(c)}</button>`).join("");
+}
+$("cats").addEventListener("click", e => {
+  const c = e.target.dataset.c;
+  if (!c) return;
+  categoriaActiva = c === "Todas" ? "" : c;
+  document.querySelectorAll("#cats button").forEach(b => b.classList.toggle("activo", b === e.target));
+  render();
+});
+
+/* ===== FAVORITOS ===== */
+function contarFavs() {
+  $("cuenta-fav").textContent = favs.length;
+  $("cuenta-fav").classList.toggle("hidden", !favs.length);
+}
+function toggleFav(id) {
+  favs = favs.includes(id) ? favs.filter(x => x !== id) : [...favs, id];
+  try { localStorage.setItem("favs", JSON.stringify(favs)); } catch {}
+  contarFavs();
+  if (soloFavs) return render();
+  const b = document.querySelector(`.fav[data-fav="${CSS.escape(id)}"]`);
+  if (b) { b.classList.toggle("on", favs.includes(id)); b.textContent = favs.includes(id) ? "♥" : "♡"; }
+}
+$("btn-fav").addEventListener("click", () => {
+  soloFavs = !soloFavs;
+  $("btn-fav").classList.toggle("activo", soloFavs);
+  render();
+});
+contarFavs();
+
+/* ===== HEADER: se oculta al bajar, aparece al subir ===== */
+let ultimoY = 0;
+addEventListener("scroll", () => {
+  const y = scrollY, h = document.querySelector("header");
+  if (Math.abs(y - ultimoY) < 8) return;
+  h.classList.toggle("oculto", y > ultimoY && y > 120 && document.activeElement !== $("buscar"));
+  ultimoY = y;
+}, { passive: true });
 
 /* ===== CARRITO ===== */
 const MIN_CARRITO = 30; // minutos que se conserva el pedido sin cambios

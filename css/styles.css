@@ -58,3 +58,14 @@ main{padding:20px 16px 100px;max-width:1200px;margin:auto}
 .btn-whatsapp.grande{display:block;margin:8px 0;padding:13px;font-size:1rem;background:#25d366;color:#fff;border:0}
 .deshabilitado{opacity:.4;pointer-events:none}
 .link{background:none;border:0;color:#777;text-decoration:underline;cursor:pointer}
+
+header{transition:transform .25s ease}
+@media(max-width:768px){header.oculto{transform:translateY(-100%)}}
+#btn-fav{position:relative;background:#fff;color:#c0392b;border:2px solid #c0392b;border-radius:50%;width:44px;height:44px;font-size:1.3rem;cursor:pointer}
+#btn-fav.activo{background:#c0392b;color:#fff}
+#cuenta-fav{position:absolute;top:-6px;right:-6px;background:#222;color:#fff;border-radius:10px;min-width:20px;height:20px;font-size:.75rem;line-height:20px;padding:0 5px}
+.fav{position:absolute;top:6px;right:6px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.92);font-size:1.2rem;color:#c0392b;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.filtros{flex-wrap:wrap}
+.filtros input{flex:1;min-width:90px;padding:8px;border:1px solid #ccc;border-radius:8px;font-size:.95rem}
+.cats{margin-top:6px}
+.cats button{padding:5px 12px;font-size:.85rem;border-color:#888}

@@ -4,18 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Catálogo | Carolina Flores Porras</title>
+<meta name="description" content="Productos de entrega inmediata: BetterWare, Home Interiors, ropa y calzado.">
+<!-- Vista previa al compartir (cambia TU_USUARIO y TU_REPO por los tuyos) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Catálogo · Entrega inmediata">
+<meta property="og:description" content="Mira los productos disponibles y pregunta por WhatsApp.">
+<meta property="og:image" content="https://dieflo04.github.io/catalogo-productos/images/preview.jpg">
+<meta property="og:url" content="https://dieflo04.github.io/catalogo-productos/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <header>
   <div class="titulo">
-    <h1>Entrega Inmediata</h1>
-    <div class="der"><span>Distribuidora: Carolina Flores Porras</span><button id="btn-carrito" aria-label="Ver mi pedido">🛒<b id="cuenta" class="hidden">0</b></button></div>
+    <h1>Entrega inmediata</h1>
+    <div class="der"><span>Distribuidora: Carolina Flores Porras</span><button id="btn-fav" aria-label="Ver favoritos">♥<b id="cuenta-fav" class="hidden">0</b></button>
+    <button id="btn-carrito" aria-label="Ver mi pedido">🛒<b id="cuenta" class="hidden">0</b></button></div>
   </div>
   <input id="buscar" type="search" placeholder="Buscar producto o ID…">
   <nav id="marcas"></nav>
-  <div id="filtros" class="filtros hidden">
-    <select id="talla"><option value="">Todas las tallas</option></select>
+  <nav id="cats" class="cats hidden"></nav>
+  <div id="filtros" class="filtros">
+    <input id="pmin" type="number" inputmode="numeric" min="0" placeholder="Precio mín">
+    <input id="pmax" type="number" inputmode="numeric" min="0" placeholder="Precio máx">
+    <select id="talla" class="hidden"><option value="">Todas las tallas</option></select>
     <select id="orden">
       <option value="">Ordenar</option>
       <option value="asc">Precio: menor a mayor</option>
