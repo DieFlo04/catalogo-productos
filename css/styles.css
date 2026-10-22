@@ -82,3 +82,13 @@ header{transition:transform .25s ease}
   .card br{display:none}
   .btn-agregar,.card .btn-whatsapp{display:block;width:100%;margin-top:6px;padding:8px 6px;font-size:.8rem;text-align:center}
 }
+
+#btn-carrito,#btn-fav{width:auto;height:40px;border-radius:20px;padding:0 14px;font-size:.9rem;white-space:nowrap}
+.der{flex-wrap:wrap;justify-content:flex-end}
+.info{background:#e8f8ee;border:1px solid #bfe8cd;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:.92rem}
+.info p{margin:0}
+.info details{margin-top:6px}
+.info summary{cursor:pointer;font-weight:bold;color:#1a7a3a}
+.info ol{margin:8px 0 2px;padding-left:20px;line-height:1.5}
+.conteo{margin:0 0 10px;color:#666;font-size:.85rem}
+.nota.fijo{color:#1a7a3a;font-weight:bold}

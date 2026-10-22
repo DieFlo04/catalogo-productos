@@ -114,6 +114,7 @@ function render(mantener) {
     </article>`).join("") || '<p class="aviso">No hay productos con esos filtros.</p>';
   $("mas").classList.toggle("hidden", total <= visibles);
   $("btn-mas").textContent = `Ver más productos (${total - visibles} restantes)`;
+  $("conteo").textContent = total + (total === 1 ? " producto" : " productos");
 }
 
 /* ===== Eventos ===== */
@@ -132,9 +133,15 @@ $("grid").addEventListener("click", e => {
   if (add) { if (agregar(add.dataset.id)) { add.textContent = "✓ Agregado"; setTimeout(() => add.textContent = "Agregar al pedido", 1200); } return; }
   if (e.target.closest(".btn-whatsapp")) return;
   const card = e.target.closest(".card");
-  if (card) { $("modal-img").src = card.dataset.foto; $("modal").classList.remove("hidden"); document.body.style.overflow = "hidden"; }
+  if (card) { history.pushState({ capa: 1 }, "");
+    $("modal-img").src = card.dataset.foto; $("modal").classList.remove("hidden"); document.body.style.overflow = "hidden"; }
 });
-const cerrar = () => { $("modal").classList.add("hidden"); document.body.style.overflow = ""; };
+const ocultarTodo = () => {
+  $("modal").classList.add("hidden"); $("carrito").classList.add("hidden"); document.body.style.overflow = "";
+};
+const cerrar = () => (history.state && history.state.capa ? history.back() : ocultarTodo());
+addEventListener("popstate", ocultarTodo);
+history.replaceState(null, "");
 $("modal").addEventListener("click", cerrar);
 document.addEventListener("keydown", e => e.key === "Escape" && cerrar());
 
@@ -246,7 +253,11 @@ function pintarCarrito() {
   $("enviar").href = piezas ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}` : "#";
 }
 
-const abrirCarrito = v => { $("carrito").classList.toggle("hidden", !v); document.body.style.overflow = v ? "hidden" : ""; };
+const abrirCarrito = v => {
+  if (!v) return cerrar();
+  history.pushState({ capa: 2 }, "");
+  $("carrito").classList.remove("hidden"); document.body.style.overflow = "hidden";
+};
 $("btn-carrito").addEventListener("click", () => abrirCarrito(true));
 $("cerrar-carrito").addEventListener("click", () => abrirCarrito(false));
 $("carrito").addEventListener("click", e => { if (e.target === $("carrito")) abrirCarrito(false); });
