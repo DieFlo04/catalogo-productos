@@ -92,3 +92,38 @@ header{transition:transform .25s ease}
 .info ol{margin:8px 0 2px;padding-left:20px;line-height:1.5}
 .conteo{margin:0 0 10px;color:#666;font-size:.85rem}
 .nota.fijo{color:#1a7a3a;font-weight:bold}
+
+/* ===== TEMA AZUL CIELO ===== */
+:root{--cielo:#8ccbee;--cielo-fuerte:#2f86c0;--cielo-claro:#eaf5fc;--borde:#c4e2f4;--texto:#1f3a4d}
+body{background:var(--cielo-claro);color:var(--texto)}
+header{background:linear-gradient(#fff,#f2f9fe);border-bottom:3px solid var(--cielo);box-shadow:0 3px 12px rgba(47,134,192,.18)}
+.titulo{display:block;margin-bottom:0}
+.titulo h1{color:#1f6fa3;font-size:1.35rem}
+.titulo .distribuidor{display:block;margin-top:2px;font-size:.85rem;font-weight:bold;color:#4a7390}
+.acciones{display:flex;gap:10px;margin:10px 0}
+.acciones button{flex:1;display:flex;align-items:center;justify-content:center;gap:4px}
+.acciones .et{color:inherit;font-size:.9rem;font-weight:bold}
+#btn-carrito{background:var(--cielo-fuerte);color:#fff}
+#btn-fav{background:#fff;color:#c0392b;border:2px solid #e8a5a0}
+#btn-fav.activo{background:#c0392b;color:#fff;border-color:#c0392b}
+#buscar,.filtros select,.filtros input{border:1px solid var(--borde);background:#fff}
+#buscar:focus,.filtros select:focus,.filtros input:focus{outline:2px solid var(--cielo);border-color:var(--cielo)}
+nav button{border:1px solid var(--cielo-fuerte);color:var(--cielo-fuerte);background:#fff}
+nav button.activo{background:var(--cielo-fuerte);color:#fff}
+.cats button{border-color:var(--cielo);color:#3a7ca8}
+.cats button.activo{background:var(--cielo);color:#12354d;border-color:var(--cielo)}
+.card{box-shadow:0 4px 14px rgba(47,134,192,.14)}
+.card h3{color:var(--texto)}
+.btn-agregar,.mas button{background:var(--cielo-fuerte)}
+.info{background:#fff;border:1px solid var(--borde);border-left:5px solid var(--cielo)}
+.info summary{list-style:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer}
+.info summary::-webkit-details-marker{display:none}
+.btn-como{background:var(--cielo-fuerte);color:#fff;padding:6px 14px;border-radius:18px;font-weight:bold;font-size:.9rem}
+.btn-como::after{content:" ▾"}
+details[open] .btn-como::after{content:" ▴"}
+.pista{font-size:.85rem;font-weight:bold;color:var(--cielo-fuerte)}
+details[open] .pista{display:none}
+@media(prefers-reduced-motion:no-preference){.pista{animation:pulso 1.4s ease-in-out infinite}}
+@keyframes pulso{50%{transform:translateX(5px);opacity:.6}}
+.nota.fijo{color:#1f6fa3}
+.conteo,.aviso{color:#4a7390}
